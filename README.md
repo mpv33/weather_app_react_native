@@ -1,10 +1,7 @@
-# React Native Weather App UI
+# React Native Weather App UI with add multiple location functionality 
 
 A Weather App UI created with React Native.
 
-## Watch it on YouTube
-
-- [React Native Weather App UI Tutorial](https://youtu.be/9XarYuINB_c)
 
 ## Screenshots 
 
