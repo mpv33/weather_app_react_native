@@ -46,6 +46,7 @@ const WeatherIcon = weatherType => {
     // return <MoonIcon width={34} height={34} fill="#fff" />;
     return <Image style={styles.weather} source={MoonIcon} />
   }
+  return <Image style={styles.weather} source={CloudIcon} />
 };
 
 const App = () => {
@@ -62,8 +63,8 @@ const App = () => {
   }
 
   const api = {
-    //key: '486a7dceff36934a00e8daaa99a9630e',
-    key: 'f658d8df2d4039180b02dd98d4f48a3f',
+    key: '486a7dceff36934a00e8daaa99a9630e',
+   // key: 'f658d8df2d4039180b02dd98d4f48a3f',
     baseUrl: 'http://api.openweathermap.org/data/2.5/',
   };
 
@@ -91,7 +92,7 @@ const App = () => {
 
   useEffect(() => {
     if (input) {
-      fetchDataHandler()
+     fetchDataHandler()
     }
 
   }, [])
@@ -144,6 +145,9 @@ const App = () => {
             bgImg = require('./assets/cloudy.jpeg');
           } else if (location.weatherType == 'Rainy' || location.weatherType == 'Rain') {
             bgImg = require('./assets/rainy.jpg');
+          }
+          else{
+            bgImg = require('./assets/cloudy.jpeg');
           }
          
 
