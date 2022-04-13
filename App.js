@@ -13,10 +13,10 @@ import {
   Image,
   TextInput,
   FlatList,
-  Alert
+  Alert,
+  PermissionsAndroid
 } from 'react-native';
-//import {Card} from 'react-native-paper';
-
+import SplashScreen from 'react-native-splash-screen'
 import Locations from './model/locations';
 import axios from 'axios';
 import SunIcon from './assets/sun.png';
@@ -28,6 +28,10 @@ import SearchIcon from './assets/search.svg';
 import AddIcon from './assets/whiteplus.png';
 
 import { getStatusBarHeight } from 'react-native-status-bar-height';
+import Geolocation from '@react-native-community/geolocation';
+import Geocoder from 'react-native-geocoding';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+
 
 const WeatherIcon = weatherType => {
   if (weatherType == 'Sunny' || weatherType == 'Clear') {
@@ -52,28 +56,33 @@ const WeatherIcon = weatherType => {
 const App = () => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const scrollX = useRef(new Animated.Value(0)).current;
-  const [input, setInput] = useState('delhi');
+  const [input, setInput] = useState('');
   const [data, setData] = useState([]);
   const [locations, setLocation] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [cities, setCities] = useState([])
+  const [city, setCities] = useState('')
+
+
 
   const fetchCities = (text) => {
     setInput(text)
   }
-
   const api = {
     key: '486a7dceff36934a00e8daaa99a9630e',
-   // key: 'f658d8df2d4039180b02dd98d4f48a3f',
+    key1: '415f2032f2d4c9d19faf92ef32bf58a2',
     baseUrl: 'http://api.openweathermap.org/data/2.5/',
   };
 
+  const addLocation = () => {
+    setCities(input)
+  }
+
   const fetchDataHandler = () => {
-    if (input) {
+    if (city) {
       setLoading(true);
       axios({
         method: 'GET',
-        url: `https://api.openweathermap.org/data/2.5/weather?q=${input}&units=metric&appid=${api.key}`,
+        url: `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${api.key}`,
       })
         .then(res => {
           console.log(res.data);
@@ -83,6 +92,7 @@ const App = () => {
           console.dir(err);
           Alert.alert('City not found', 'Please Try again');
           setInput('')
+          setCities('')
         })
         .finally(() => {
           setLoading(false);
@@ -90,12 +100,69 @@ const App = () => {
     }
   };
 
-  useEffect(() => {
-    if (input) {
-     fetchDataHandler()
+  const getLocationDetials = () => {
+    Geolocation.getCurrentPosition((info) => {
+      let lat = info?.coords?.latitude;
+      let lon = info?.coords?.longitude;
+      axios({
+        method: 'GET',
+        url: `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${api.key1}`
+      })
+        .then(res => {
+          console.log('addresss detials', res.data);
+          setCities(res.data?.name)
+
+        })
+        .catch(err => {
+          console.log('geo location err', err);
+          setCities('delhi')
+
+        })
+    })
+
+  }
+  const fetchLocationPermission = async function requestLocationPermission() {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+
+          title: 'Location Access Required',
+          message: 'This App needs to Access your location',
+        }
+
+      )
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        getLocationDetials()
+
+      } else {
+        alert("Location Permission Denied");
+        setCities('delhi')
+      }
+    } catch (err) {
+      console.warn('catch', err)
     }
+  }
+
+
+
+  useEffect(() => {
+    fetchLocationPermission()
+    setTimeout(() => {
+      SplashScreen.hide();
+    }, 3000)
+
 
   }, [])
+
+  useEffect(() => {
+    if (city) {
+      fetchDataHandler()
+    }
+
+  }, [city])
+
+
   useEffect(() => {
     if (data?.name) {
       let addData = {};
@@ -110,11 +177,17 @@ const App = () => {
       addData.rain = 50;
       addData.weatherType = data?.weather[0]?.main
       console.log('added data', addData)
-      setLocation([addData,...locations])
+
+      let key = 'city'
+      let arr = [...new Map([addData, ...locations].map(item => [item[key], item])).values()];
+      setLocation(arr)
       setInput('')
     }
-
   }, [data])
+
+
+
+
 
   return (
     <>
@@ -146,10 +219,10 @@ const App = () => {
           } else if (location.weatherType == 'Rainy' || location.weatherType == 'Rain') {
             bgImg = require('./assets/rainy.jpg');
           }
-          else{
+          else {
             bgImg = require('./assets/cloudy.jpeg');
           }
-         
+
 
           return (
             <View
@@ -179,9 +252,9 @@ const App = () => {
                         <Text style={styles.temparature}>
                           {location?.temparature} °C
                         </Text>
-                        <Text style={styles.compareTemp}>
+                        {/* <Text style={styles.compareTemp}>
                           10 °C higher than yesterday
-                        </Text>
+                        </Text> */}
                         <Text style={styles.HLTemp} >
                           {location?.temp_min} °C / {location?.temp_max} °C
                         </Text>
@@ -258,16 +331,30 @@ const App = () => {
           <Image
             style={styles.menuIcon}
             source={MenuIcon} />
-        </TouchableOpacity>
-
+        </TouchableOpacity> 
+         <View style={styles.search}> 
         <TextInput
           placeholder="Enter city name"
-          style={{ color: '#fff' }}
+          style={{ color: 'black' }}
           onChangeText={(text) => fetchCities(text)}
-          placeholderTextColor={'#fff'}
+          placeholderTextColor={'black'}
           value={input}
         />
-        <TouchableOpacity onPress={fetchDataHandler}>
+        </View>
+        {/* <GooglePlacesAutocomplete
+          placeholder='Search'
+          fetchDetails={true}
+          onPress={(data, details = null) => {
+            // 'details' is provided when fetchDetails = true
+            console.log('hiiiiii',data, details);
+          }}
+          query={{
+            key: 'AIzaSyBy3sxjY4tgAz_X9K9ltqaWuloYD4EASmA',
+            language: 'en',
+          }}
+        /> */}
+
+        <TouchableOpacity onPress={addLocation}>
           <Image
             style={styles.addIcon}
             source={AddIcon} />
@@ -317,6 +404,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  search: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 50,
+    //borderRadius: 20
   },
   addIcon: {
     //backgroundColor: 'white',
