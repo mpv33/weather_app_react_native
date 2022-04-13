@@ -8,7 +8,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:text="MPV Weather App"
+        android:text="Weather App"
         android:textStyle="bold"
         android:textSize="40dp"
         android:textColor="#fff"

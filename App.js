@@ -14,7 +14,8 @@ import {
   TextInput,
   FlatList,
   Alert,
-  PermissionsAndroid
+  PermissionsAndroid,
+  Platform
 } from 'react-native';
 import SplashScreen from 'react-native-splash-screen'
 import Locations from './model/locations';
@@ -62,6 +63,47 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [city, setCities] = useState('')
 
+
+
+
+  useEffect(() => {
+    fetchLocationPermission()
+    setTimeout(() => {
+      SplashScreen.hide();
+    }, 2000)
+
+
+  }, [])
+
+  useEffect(() => {
+    if (city) {
+      fetchDataHandler()
+    }
+
+  }, [city])
+
+
+  useEffect(() => {
+    if (data?.name) {
+      let addData = {};
+      let l = locations?.length
+      addData.id = l > 0 ? l + 1 : 1;
+      addData.city = data?.name;
+      addData.temparature = data?.main?.temp;
+      addData.temp_min = data?.main?.temp_min;
+      addData.temp_max = data?.main?.temp_max;
+      addData.humidity = data?.main?.humidity;
+      addData.wind = data?.wind?.speed;
+      addData.rain = 50;
+      addData.weatherType = data?.weather[0]?.main
+      console.log('added data', addData)
+
+      let key = 'city'
+      let arr = [...new Map([addData, ...locations].map(item => [item[key], item])).values()];
+      setLocation(arr)
+      setInput('')
+    }
+  }, [data])
 
 
   const fetchCities = (text) => {
@@ -122,68 +164,33 @@ const App = () => {
 
   }
   const fetchLocationPermission = async function requestLocationPermission() {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
+    if (Platform.OS === "ios") {
+      Geolocation.requestAuthorization()
+      getLocationDetials()
+    } else {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
 
-          title: 'Location Access Required',
-          message: 'This App needs to Access your location',
+            title: 'Location Access Required',
+            message: 'This App needs to Access your location',
+          }
+
+        )
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          getLocationDetials()
+
+        } else {
+          alert("Location Permission Denied");
+          setCities('delhi')
         }
-
-      )
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        getLocationDetials()
-
-      } else {
-        alert("Location Permission Denied");
-        setCities('delhi')
+      } catch (err) {
+        console.warn('catch', err)
       }
-    } catch (err) {
-      console.warn('catch', err)
     }
+
   }
-
-
-
-  useEffect(() => {
-    fetchLocationPermission()
-    setTimeout(() => {
-      SplashScreen.hide();
-    }, 3000)
-
-
-  }, [])
-
-  useEffect(() => {
-    if (city) {
-      fetchDataHandler()
-    }
-
-  }, [city])
-
-
-  useEffect(() => {
-    if (data?.name) {
-      let addData = {};
-      let l = locations?.length
-      addData.id = l > 0 ? l + 1 : 1;
-      addData.city = data?.name;
-      addData.temparature = data?.main?.temp;
-      addData.temp_min = data?.main?.temp_min;
-      addData.temp_max = data?.main?.temp_max;
-      addData.humidity = data?.main?.humidity;
-      addData.wind = data?.wind?.speed;
-      addData.rain = 50;
-      addData.weatherType = data?.weather[0]?.main
-      console.log('added data', addData)
-
-      let key = 'city'
-      let arr = [...new Map([addData, ...locations].map(item => [item[key], item])).values()];
-      setLocation(arr)
-      setInput('')
-    }
-  }, [data])
 
 
 
@@ -331,15 +338,15 @@ const App = () => {
           <Image
             style={styles.menuIcon}
             source={MenuIcon} />
-        </TouchableOpacity> 
-         <View style={styles.search}> 
-        <TextInput
-          placeholder="Enter city name"
-          style={{ color: 'black' }}
-          onChangeText={(text) => fetchCities(text)}
-          placeholderTextColor={'black'}
-          value={input}
-        />
+        </TouchableOpacity>
+        <View style={styles.search}>
+          <TextInput
+            placeholder="Enter city name"
+            style={{ color: 'black' }}
+            onChangeText={(text) => fetchCities(text)}
+            placeholderTextColor={'black'}
+            value={input}
+          />
         </View>
         {/* <GooglePlacesAutocomplete
           placeholder='Search'
